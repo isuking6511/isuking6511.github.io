@@ -113,7 +113,7 @@ input,select{background:var(--card2);border:1px solid var(--line);color:var(--te
   <div class="card">
     <h2>CKA 전체 진행률 <span class="pct" id="ckaPct"></span></h2>
     <div class="bar"><i id="ckaBar"></i></div>
-    <div class="big-lbl">뭄샤드 Udemy 기준 · 강의 분량 가중치 반영</div>
+    <div class="big-lbl">뭄샤드 Udemy 기준 · 4주 압축 (7/20~8/15 시험)</div>
     <div id="ckaList"></div>
   </div>
 </section>
@@ -165,27 +165,25 @@ const ROUTINE={
  6:[{t:'CKA 모의시험 데이 7h',tm:'12–19',s:1}],
  0:[{t:'오픽 모의응시/롤플레이 3h',tm:'12–15',s:1},{t:'MSP/중견 지원 2~3곳',tm:'16–19',s:1},{t:'주간 리뷰 (진행률 체크)',tm:'19–19:30',s:1}]
 };
-// CKA 섹션: [이름, 주차, 가중치(강의 분량)]
+// CKA 섹션: [이름, 주차, 가중치(강의 분량)] — 4주 압축
 const CKA=[
- ['Core Concepts','W1',12],['Scheduling','W2',7],['Logging & Monitoring','W2',2],
- ['Application Lifecycle Mgmt','W3',6],['Cluster Maintenance','W3',5],
- ['Security','W4',14],['Storage','W5',6],['Networking','W5',12],
- ['Design & Install Cluster','W6',3],['Install w/ kubeadm','W6',2],
- ['Helm / Kustomize','W6',4],['Troubleshooting','W6',7],
- ['Other Topics (JSONPath 등)','W7',3],['Mock Exams + Lightning Lab','W7',8],['killer.sh 2세션','W7',6]
+ ['Core Concepts','W1',12],['Scheduling','W1',7],['Logging & Monitoring','W1',2],
+ ['Application Lifecycle Mgmt','W2',6],['Cluster Maintenance','W2',5],
+ ['Security','W2',14],['Storage','W3',6],['Networking','W3',12],
+ ['Design & Install Cluster','W4',3],['Install w/ kubeadm','W4',2],
+ ['Helm / Kustomize','W4',4],['Troubleshooting','W4',7],
+ ['Other Topics (JSONPath 등)','W4',3],['Mock Exams + Lightning Lab','W4',8],['killer.sh 2세션','W4',6]
 ];
 const GOALS=[
- ['W1 · ~7/19','Core Concepts 완강 (Services~kubectl apply)'],
- ['W2 · 7/20~','Scheduling + Logging&Monitoring 완강'],
- ['W3 · 7/27~','App Lifecycle + Cluster Maintenance 완강'],
- ['W4 · 8/3~','Security 완강 + 오픽 1차 응시'],
- ['W5 · 8/10~','Storage + Networking 완강'],
- ['W6 · 8/17~','kubeadm + Helm + Troubleshooting 완강'],
- ['W7 · 8/24~','Mock Exam + killer.sh 2회 + CKA 응시'],
+ ['W1 · 7/20~','Core Concepts 마무리 + Scheduling + Logging&Monitoring'],
+ ['W2 · 7/27~','App Lifecycle + Cluster Maintenance + Security'],
+ ['W3 · 8/3~','Storage + Networking 완강'],
+ ['W4 · 8/10~','kubeadm+Helm+Troubleshooting + Mock/killer.sh → 8/15 시험'],
+ ['8월 중순','오픽 응시 (IM2+) · 8/14 전후'],
  ['9월','하반기 공채 지원 (1티어: CJ올네·삼성SDS)'],
- ['10월','정처기 실기 응시 (접수 9/21 필수!)']
+ ['10월','정처기 실기 응시 (접수 9/21 — 일단 응시는 하기)']
 ];
-const DDAYS=[['오픽 1차','2026-08-08'],['CKA 시험','2026-08-29'],['공채 시즌','2026-09-01'],['정처기 접수','2026-09-21'],['취준 데드라인','2027-02-01']];
+const DDAYS=[['오픽','2026-08-14'],['CKA 시험','2026-08-15'],['공채 시즌','2026-09-01'],['정처기 접수','2026-09-21'],['취준 데드라인','2027-02-01']];
 
 // ---- 유틸 ----
 const today=()=>new Date().toISOString().slice(0,10);
@@ -236,7 +234,7 @@ function renderCka(){
  document.getElementById('ckaList').innerHTML=CKA.map(([n,w],idx)=>{
   const p=S.cka[idx]||0;
   return `<div class="sec-row"><div class="sec-top"><span><span class="w">${w}</span>${n}</span><span class="p">${p}%</span></div>
-   <div class="steps">${[0,25,50,75,100].map(v=>`<b class="${p>=v&&(v>0||p===0)?(p>=v&&v>0?'on':''):''}" onclick="setCka(${idx},${v})">${v}</b>`).join('')}</div></div>`;
+   <div class="steps">${[0,25,50,75,100].map(v=>`<b class="${p>=v&&v>0?'on':''}" onclick="setCka(${idx},${v})">${v}</b>`).join('')}</div></div>`;
  }).join('');
  const totW=CKA.reduce((a,c)=>a+c[2],0);
  const got=CKA.reduce((a,c,i)=>a+c[2]*(S.cka[i]||0)/100,0);
@@ -255,7 +253,6 @@ function renderGoal(){
    <button class="${st===1?'ok':st===2?'no':''}" onclick="togG(${i})">${st===1?'달성':st===2?'미달':'—'}</button></div>`;
  }).join('');
  const done=GOALS.filter((_,i)=>S.goals[i]===1).length;
- const judged=GOALS.filter((_,i)=>S.goals[i]).length;
  document.getElementById('goalPct').textContent=`${done}/${GOALS.length} 달성`;
  document.getElementById('goalBar').style.width=(done/GOALS.length*100)+'%';
 }
