@@ -53,6 +53,9 @@ section{padding:6px 18px}
 .item.done .t{color:var(--sub);text-decoration:line-through}
 .item .tm{font-size:11px;color:var(--sub);background:var(--card2);border-radius:7px;padding:3px 7px}
 .item.fixed .chk{border-style:dashed;opacity:.55}
+.roll-chip{font-size:10px;font-weight:700;color:var(--red);background:#fdeaea;border-radius:6px;padding:2px 6px;margin-right:6px}
+.cust-chip{font-size:10px;font-weight:700;color:var(--purple);background:#f0ebfd;border-radius:6px;padding:2px 6px;margin-right:6px}
+.delx{color:#c3c9d8;font-size:15px;background:none;border:none;padding:0 2px;flex:0 0 auto}
 .sec-row{padding:10px 2px;border-bottom:1px solid var(--line)}
 .sec-row:last-child{border-bottom:none}
 .sec-top{display:flex;justify-content:space-between;align-items:center;font-size:14px;margin-bottom:7px}
@@ -81,7 +84,7 @@ section{padding:6px 18px}
 .tabs button.on{color:var(--accent)}
 .tabs button span{display:block;font-size:20px;margin-bottom:2px}
 .page{display:none}.page.on{display:block}
-input{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:11px;padding:11px;font-size:14px;width:100%}
+input,select{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:11px;padding:11px;font-size:14px;width:100%;-webkit-appearance:none}
 .form-row{display:flex;gap:8px;margin-bottom:8px}
 .btn{background:var(--accent);color:#fff;border:none;border-radius:11px;padding:12px;font-size:14px;font-weight:700;width:100%}
 .app-row{padding:11px 2px;border-bottom:1px solid var(--line)}
@@ -128,6 +131,23 @@ input{background:var(--card2);border:1px solid var(--line);color:var(--text);bor
     <h2>오늘의 루틴 <span class="pct" id="todayPct"></span></h2>
     <div class="bar"><i id="todayBar"></i></div>
     <div id="todayList"></div>
+  </div>
+  <div class="card">
+    <h2>➕ 일정 추가</h2>
+    <div class="form-row"><input id="cuTitle" placeholder="할 일 (예: 삼성SDS 사전과제 준비)"></div>
+    <div class="form-row">
+      <input id="cuTime" placeholder="시간 (예: 20–21)" style="flex:1">
+      <input id="cuDate" type="date" style="flex:1.2">
+    </div>
+    <div class="form-row">
+      <select id="cuRep">
+        <option value="once">한 번만</option>
+        <option value="daily">매일 반복</option>
+        <option value="weekly">매주 (선택한 날짜의 요일)</option>
+      </select>
+    </div>
+    <button class="btn" onclick="addCustom()">추가</button>
+    <div class="note">못 한 공부 항목은 자동으로 다음날 '이월'로 넘어옵니다. 이월 항목을 체크하면 사라져요.</div>
   </div>
   <div class="card">
     <h2>이번 주 공부 달성률</h2>
@@ -200,6 +220,7 @@ const LS='jobprep-v3';
 let S=JSON.parse(localStorage.getItem(LS)||'{}');
 S.routine=S.routine||{}; S.cka=S.cka||{}; S.goals=S.goals||{}; S.apps=S.apps||[];
 S.opic=S.opic||{}; S.aif=S.aif||{}; S.notif=S.notif||false;
+S.custom=S.custom||[]; S.backlog=S.backlog||[];
 const save=()=>localStorage.setItem(LS,JSON.stringify(S));
 
 // ---- 루틴 (일본어는 8월부터) ----
@@ -221,7 +242,43 @@ const R_AUG={
  6:R_JULY[6],
  0:R_JULY[0]
 };
-const routineFor=d=>(d.toISOString().slice(0,10)<'2026-08-01'?R_JULY:R_AUG)[d.getDay()]||[];
+const key=d=>d.toISOString().slice(0,10);
+const routineFor=d=>(key(d)<'2026-08-01'?R_JULY:R_AUG)[d.getDay()]||[];
+// 커스텀 일정: {id, t, tm, date, rep:'once'|'daily'|'weekly', dow}
+const customFor=d=>{
+ const k=key(d),dow=d.getDay();
+ return S.custom.filter(c=>c.rep==='daily'||(c.rep==='weekly'&&c.dow===dow&&k>=c.date)||(c.rep==='once'&&c.date===k));
+};
+// 해당 날짜의 전체 항목 (id 부여: 루틴은 숫자 인덱스, 커스텀은 'c'+id)
+const itemsFor=d=>[
+ ...routineFor(d).map((it,i)=>({...it,id:String(i)})),
+ ...customFor(d).map(c=>({t:c.t,tm:c.tm||'',s:1,id:'c'+c.id,custom:c}))
+];
+
+// ---- 이월(rollover): 어제까지 못 한 공부 항목을 오늘로 ----
+function rollOver(){
+ const k=key(new Date());
+ if(S.lastRoll===k)return;
+ if(!S.lastRoll){S.lastRoll=k;save();return;} // 첫 실행: 과거 소급 없음
+ S.backlog=S.backlog.filter(b=>!b.done); // 완료된 이월은 제거
+ const from=S.lastRoll?new Date(new Date(S.lastRoll).getTime()):new Date(Date.now()-864e5);
+ const start=Math.max(from.getTime(),Date.now()-7*864e5); // 최대 7일 소급
+ for(let t=start;t<new Date(k).getTime();t+=864e5){
+  const d=new Date(t),kk=key(d);
+  if(kk>=k)break;
+  const done=S.routine[kk]||{};
+  itemsFor(d).forEach(it=>{
+   if(!it.s)return; // 고정 일정은 이월 안 함
+   if(it.custom&&it.custom.rep!=='once')return; // 반복 커스텀은 어차피 또 나옴
+   if(done[it.id])return;
+   const uid=kk+'/'+it.id;
+   if(S.backlog.some(b=>b.uid===uid))return;
+   S.backlog.push({uid,t:it.t,tm:it.tm,from:kk,done:false});
+  });
+ }
+ if(S.backlog.length>10)S.backlog=S.backlog.slice(-10); // 폭주 방지
+ S.lastRoll=k;save();
+}
 
 // ---- CKA 섹션 [이름, 주차, 가중치] ----
 const CKA=[
@@ -232,7 +289,6 @@ const CKA=[
  ['Helm / Kustomize','W4',4],['Troubleshooting','W4',7],
  ['Other Topics (JSONPath 등)','W4',3],['Mock Exams + Lightning Lab','W4',8],['killer.sh 2세션','W4',6]
 ];
-// ---- 오픽 IH 마일스톤 ----
 const OPIC=[
  ['스크립트 15개 암기','7월~8월 초'],
  ['모의응시 3회 (일요일 블록)','~8/9'],
@@ -240,14 +296,12 @@ const OPIC=[
  ['IM2+ 확보 (지원 자격)','8월 중'],
  ['IH 달성 (재응시 포함)','~9월']
 ];
-// ---- AI Practitioner 마일스톤 ----
 const AIF=[
  ['강의/교재 1회독','8/16~8/26'],
  ['연습문제·덤프 2회독','8/27~9/2'],
  ['시험 접수','8월 말'],
  ['합격','~9월 초']
 ];
-// ---- 프로젝트 (완료 + 예정) ----
 const PROJ=[
  {n:'보안 앱 개발',d:'완료 · 자소서 소재',due:'완료',init:1},
  {n:'크롤링 앱 개발',d:'완료 · 자소서 소재',due:'완료',init:1},
@@ -258,7 +312,6 @@ const PROJ=[
  {n:'포트폴리오/이력서 프로젝트란 최종 정리',d:'공채 지원 직전 완성',due:'~9/7',init:0}
 ];
 if(!S.proj){S.proj={};PROJ.forEach((p,i)=>{if(p.init)S.proj[i]=true});}
-// ---- 주차 목표 ----
 const GOALS=[
  ['W1 · 7/20~','Core Concepts 마무리 + Scheduling + Logging&Monitoring'],
  ['W2 · 7/27~','App Lifecycle + Cluster Maintenance + Security'],
@@ -269,13 +322,12 @@ const GOALS=[
  ['10월','정처기 실기 응시 (접수 9/21 — 일단 응시는 하기)']
 ];
 const DDAYS=[['오픽','2026-08-14'],['CKA 시험','2026-08-15'],['공채 시즌','2026-09-01'],['AIF 목표','2026-09-06'],['정처기 접수','2026-09-21'],['데드라인','2027-02-01']];
-// ---- 취준 종합 가중치 ----
 const W={cka:35,proj:30,opic:20,aif:15};
 
-const today=()=>new Date().toISOString().slice(0,10);
+const today=()=>key(new Date());
 const fmt=d=>`${d.getMonth()+1}/${d.getDate()} (${'일월화수목금토'[d.getDay()]})`;
 
-// ---- 트랙 % 계산 ----
+// ---- 트랙 % ----
 function ckaP(){const t=CKA.reduce((a,c)=>a+c[2],0);return CKA.reduce((a,c,i)=>a+c[2]*(S.cka[i]||0)/100,0)/t*100}
 function listP(state,arr){return Object.keys(state).filter(k=>state[k]).length/arr.length*100}
 function totalP(){
@@ -286,8 +338,8 @@ function renderHero(){
  document.getElementById('hTitle').textContent=`취준 ${p}%`;
  document.getElementById('heroPct').textContent=p+'%';
  document.getElementById('heroPct').style.color=p>=70?'var(--green)':p>=35?'var(--accent)':'var(--text)';
- const tr=[['CKA',ckaP(),'var(--accent)',W.cka],['프로젝트',listP(S.proj,PROJ),'var(--purple)',W.proj],['오픽 IH',listP(S.opic,OPIC),'var(--green)',W.opic],['AI Practitioner',listP(S.aif,AIF),'var(--amber)',W.aif]];
- document.getElementById('trackList').innerHTML=tr.map(([n,v,c,w])=>
+ const tr=[['CKA',ckaP(),'var(--accent)'],['프로젝트',listP(S.proj,PROJ),'var(--purple)'],['오픽 IH',listP(S.opic,OPIC),'var(--green)'],['AI Practitioner',listP(S.aif,AIF),'var(--amber)']];
+ document.getElementById('trackList').innerHTML=tr.map(([n,v,c])=>
   `<div class="track"><span class="nm"><i style="background:${c}"></i>${n}</span><span class="tb"><b style="width:${v}%;background:${c}"></b></span><span class="pv">${Math.round(v)}%</span></div>`).join('')
   +`<div class="note">가중치: CKA ${W.cka} · 프로젝트 ${W.proj} · 오픽 ${W.opic} · AIF ${W.aif}</div>`;
 }
@@ -303,32 +355,65 @@ function renderDday(){
  }).join('');
 }
 
-// ---- 오늘 루틴 ----
+// ---- 오늘 루틴 (이월 + 루틴 + 커스텀) ----
 function renderToday(){
- const d=new Date(),k=today(),items=routineFor(d);
+ const d=new Date(),k=today();
  S.routine[k]=S.routine[k]||{};
+ const chk=S.routine[k];
  document.getElementById('hDate').textContent=fmt(d)+' · 새벽 2시 취침 지키기';
- document.getElementById('todayList').innerHTML=items.map((it,i)=>{
-  const done=S.routine[k][i];
-  return `<div class="item ${done?'done':''} ${it.s?'':'fixed'}" onclick="togR(${i})">
-    <div class="chk">${done?'✓':''}</div><div class="t">${it.t}</div><div class="tm">${it.tm}</div></div>`;
- }).join('')||'<div class="empty">오늘은 일정 없음</div>';
- const study=items.map((it,i)=>({...it,i})).filter(x=>x.s);
- const done=study.filter(x=>S.routine[k][x.i]).length;
- document.getElementById('todayPct').textContent=`${done}/${study.length}`;
- document.getElementById('todayBar').style.width=(study.length?done/study.length*100:0)+'%';
+ const items=itemsFor(d);
+ let html='';
+ // 이월 항목
+ S.backlog.forEach((b,bi)=>{
+  html+=`<div class="item ${b.done?'done':''}" onclick="togB(${bi})">
+   <div class="chk">${b.done?'✓':''}</div>
+   <div class="t"><span class="roll-chip">이월 ${b.from.slice(5).replace('-','/')}</span>${b.t}</div>
+   <div class="tm">${b.tm||''}</div></div>`;
+ });
+ // 오늘 항목
+ html+=items.map(it=>{
+  const done=chk[it.id];
+  const chip=it.custom?`<span class="cust-chip">내 일정${it.custom.rep==='daily'?'·매일':it.custom.rep==='weekly'?'·매주':''}</span>`:'';
+  const del=it.custom?`<button class="delx" onclick="event.stopPropagation();delCustom(${it.custom.id})">✕</button>`:'';
+  return `<div class="item ${done?'done':''} ${it.s?'':'fixed'}" onclick="togR('${it.id}')">
+    <div class="chk">${done?'✓':''}</div><div class="t">${chip}${it.t}</div><div class="tm">${it.tm}</div>${del}</div>`;
+ }).join('');
+ document.getElementById('todayList').innerHTML=html||'<div class="empty">오늘은 일정 없음</div>';
+ // 오늘 달성률 (공부 항목 + 이월)
+ const study=items.filter(x=>x.s);
+ const total=study.length+S.backlog.length;
+ const done=study.filter(x=>chk[x.id]).length+S.backlog.filter(b=>b.done).length;
+ document.getElementById('todayPct').textContent=`${done}/${total}`;
+ document.getElementById('todayBar').style.width=(total?done/total*100:0)+'%';
+ // 주간
  let tot=0,ok=0;
  for(let o=0;o<7;o++){
-  const dd=new Date(Date.now()-o*864e5),kk=dd.toISOString().slice(0,10);
-  const its=routineFor(dd).map((it,i)=>({...it,i})).filter(x=>x.s);
-  tot+=its.length; ok+=its.filter(x=>(S.routine[kk]||{})[x.i]).length;
+  const dd=new Date(Date.now()-o*864e5),kk=key(dd);
+  const its=itemsFor(dd).filter(x=>x.s);
+  tot+=its.length; ok+=its.filter(x=>(S.routine[kk]||{})[x.id]).length;
  }
  const wp=tot?Math.round(ok/tot*100):0;
  document.getElementById('weekPct').textContent=wp+'%';
  document.getElementById('weekPct').style.color=wp>=70?'var(--green)':wp>=40?'var(--amber)':'var(--red)';
  document.getElementById('weekBar').style.width=wp+'%';
 }
-function togR(i){const k=today();S.routine[k][i]=!S.routine[k][i];save();renderToday();}
+function togR(id){const k=today();S.routine[k][id]=!S.routine[k][id];save();renderToday();}
+function togB(bi){S.backlog[bi].done=!S.backlog[bi].done;save();renderToday();}
+
+// ---- 커스텀 일정 ----
+function addCustom(){
+ const t=document.getElementById('cuTitle').value.trim();
+ if(!t)return;
+ const dateV=document.getElementById('cuDate').value||today();
+ const rep=document.getElementById('cuRep').value;
+ S.custom.push({id:Date.now(),t,tm:document.getElementById('cuTime').value.trim(),date:dateV,rep,dow:new Date(dateV).getDay()});
+ ['cuTitle','cuTime'].forEach(id=>document.getElementById(id).value='');
+ save();renderToday();scheduleToday();
+}
+function delCustom(id){
+ if(!confirm('이 일정을 삭제할까요?'))return;
+ S.custom=S.custom.filter(c=>c.id!==id);save();renderToday();
+}
 
 // ---- CKA ----
 function renderCka(){
@@ -343,12 +428,12 @@ function renderCka(){
 }
 function setCka(i,v){S.cka[i]=v;save();renderCka();renderHero();}
 
-// ---- 체크리스트 트랙 (오픽/AIF/프로젝트) ----
+// ---- 체크리스트 트랙 ----
 function renderCheck(arr,state,listId,pctId,barId,toggler,isProj){
  document.getElementById(listId).innerHTML=arr.map((it,i)=>{
   const done=state[i];
   if(isProj)return `<div class="proj ${done?'done':''}" onclick="${toggler}(${i})">
-   <div class="chk" style="border-radius:50%;${done?'background:var(--green);border-color:var(--green)':''}">${done?'✓':''}</div>
+   <div class="chk" style="${done?'background:var(--green);border-color:var(--green)':''}">${done?'✓':''}</div>
    <div class="t"><b>${it.n}</b><span>${it.d}</span></div><span class="due ${it.due==='완료'?'done':''}">${it.due}</span></div>`;
   return `<div class="item ${done?'done':''}" onclick="${toggler}(${i})">
    <div class="chk">${done?'✓':''}</div><div class="t">${it[0]}</div><div class="tm">${it[1]}</div></div>`;
@@ -402,7 +487,7 @@ function addApp(){
 function togS(i){S.apps[i].s=(S.apps[i].s+1)%5;save();renderApp();}
 function delApp(i){if(confirm('삭제할까요?')){S.apps.splice(i,1);save();renderApp();}}
 
-// ---- 알림 (앱이 켜져 있을 때 · 확실한 알림은 캘린더가 담당) ----
+// ---- 알림 (앱 실행 중 · 확실한 알림은 캘린더 담당) ----
 let timers=[];
 function togNotif(){
  if(S.notif){S.notif=false;save();updateBell();timers.forEach(clearTimeout);timers=[];return;}
@@ -419,14 +504,14 @@ function updateBell(){
 }
 function scheduleToday(){
  timers.forEach(clearTimeout);timers=[];
- if(!S.notif||Notification.permission!=='granted')return;
+ if(!S.notif||!('Notification' in window)||Notification.permission!=='granted')return;
  const now=new Date();
- routineFor(now).forEach(it=>{
+ itemsFor(now).forEach(it=>{
   const h=parseInt(it.tm);
   if(isNaN(h))return;
   const t=new Date(now);t.setHours(h,0,0,0);
   const diff=t-now;
-  if(diff>0&&diff<12*3600*1000)timers.push(setTimeout(()=>new Notification('⏰ '+it.t,{body:it.tm+' 블록 시작!'}),diff));
+  if(diff>0&&diff<12*3600*1000)timers.push(setTimeout(()=>new Notification('⏰ '+it.t,{body:(it.tm||'')+' 블록 시작!'}),diff));
  });
 }
 
@@ -437,6 +522,7 @@ function tab(id,btn){
  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('on'));
  btn.classList.add('on');
 }
+rollOver();
 renderDday();renderToday();renderCka();renderOpic();renderAif();renderProj();renderGoal();renderApp();renderHero();updateBell();
 if(S.notif)scheduleToday();
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
