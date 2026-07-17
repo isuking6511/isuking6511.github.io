@@ -1,4 +1,4 @@
-const CACHE = 'jobprep-v2';
+const CACHE = 'jobprep-v3';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-180.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -12,7 +12,6 @@ self.addEventListener('activate', e => {
   );
 });
 
-// 네트워크 우선(최신 버전 반영), 실패 시 캐시(오프라인)
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   e.respondWith(
