@@ -1,4 +1,4 @@
-const CACHE = 'jobprep-v5';
+const CACHE = 'jobprep-v8';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-180.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -21,4 +21,13 @@ self.addEventListener('fetch', e => {
       return res;
     }).catch(() => caches.match(e.request).then(r => r || caches.match('./index.html')))
   );
+});
+
+// 알림 탭 시 앱 열기
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(clients.matchAll({type:'window'}).then(cs => {
+    if (cs.length) return cs[0].focus();
+    return clients.openWindow('./');
+  }));
 });

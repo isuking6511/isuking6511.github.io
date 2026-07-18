@@ -72,9 +72,12 @@ section{padding:6px 18px}
 .delx{color:#c3c9d8;font-size:15px;background:none;border:none;padding:0 2px;flex:0 0 auto}
 .sec-row{padding:10px 2px;border-bottom:1px solid var(--line)}
 .sec-row:last-child{border-bottom:none}
-.sec-top{display:flex;justify-content:space-between;align-items:center;font-size:14px;margin-bottom:7px}
+.sec-top{display:flex;justify-content:space-between;align-items:center;font-size:14px;margin-bottom:7px;cursor:pointer}
 .sec-top .w{font-size:10px;background:var(--card2);color:var(--sub);border-radius:6px;padding:2px 7px;margin-right:6px;font-weight:600}
 .sec-top .p{font-size:12px;color:var(--sub);font-weight:600}
+.stars{font-size:10px;color:var(--amber);margin-left:5px;letter-spacing:-1px}
+.tip{display:none;font-size:12px;color:var(--sub);background:var(--card2);border-radius:9px;padding:9px 11px;margin-bottom:8px;line-height:1.55}
+.tip.on{display:block}
 .steps{display:flex;gap:6px}
 .steps b{flex:1;height:27px;border-radius:8px;background:var(--card2);font-size:10px;color:var(--sub);display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:600}
 .steps b.on{background:var(--accent);color:#fff}
@@ -85,8 +88,9 @@ section{padding:6px 18px}
 .goal button{border:none;background:var(--card2);color:var(--sub);border-radius:9px;padding:7px 11px;font-size:12px;font-weight:600}
 .goal button.ok{background:var(--green);color:#fff}
 .goal button.no{background:var(--red);color:#fff}
+.phase{font-size:12px;font-weight:800;color:var(--purple);padding:12px 2px 4px;border-bottom:1px solid var(--line)}
+.phase span{font-weight:600;color:var(--sub);font-size:11px;margin-left:6px}
 .proj{display:flex;align-items:center;gap:11px;padding:11px 2px;border-bottom:1px solid var(--line);cursor:pointer}
-.proj:last-child{border-bottom:none}
 .proj .t{flex:1}
 .proj .t b{font-size:14px;font-weight:600;display:block}
 .proj.done .t b{color:var(--sub);text-decoration:line-through}
@@ -183,7 +187,7 @@ input,select{background:var(--card2);border:1px solid var(--line);color:var(--te
       <button class="btn2" onclick="document.getElementById('impFile').click()">가져오기</button>
       <input type="file" id="impFile" accept=".json" style="display:none" onchange="impData(this)">
     </div>
-    <div class="note">기록 전체를 JSON 파일로 저장/복원. 기기 변경이나 데이터 유실 대비용.</div>
+    <div class="note">일요일 리뷰 때 내보내기 한 번씩. 프라이버시 모드에서는 데이터가 유지되지 않으니 일반 사파리 + 홈 화면 앱으로 쓸 것.</div>
   </div>
 </section>
 
@@ -192,7 +196,7 @@ input,select{background:var(--card2);border:1px solid var(--line);color:var(--te
   <div class="card">
     <h2>☸️ CKA <span class="pct" id="ckaPct"></span></h2>
     <div class="bar"><i id="ckaBar"></i></div>
-    <div class="big-lbl">뭄샤드 Udemy · 4주 압축 (7/20~8/15 시험)</div>
+    <div class="big-lbl">섹션명을 탭하면 난이도·공략 팁이 열립니다</div>
     <div id="ckaList"></div>
   </div>
   <div class="card">
@@ -219,7 +223,7 @@ input,select{background:var(--card2);border:1px solid var(--line);color:var(--te
     <h2>🛠 프로젝트 <span class="pct" id="projPct"></span></h2>
     <div class="bar"><i id="projBar"></i></div>
     <div id="projList"></div>
-    <div class="note">멀티클라우드는 다이어그램+README 정리가 핵심 — 면접에서 "그림 그려서 설명"이 나옵니다.</div>
+    <div class="note">킬러 콘텐츠 = 한쪽 클라우드를 실제로 죽여보는 장애 테스트 기록. "왜 멀티클라우드인가" 한 문장 답은 면접 1순위 질문.</div>
   </div>
 </section>
 
@@ -248,6 +252,17 @@ input,select{background:var(--card2);border:1px solid var(--line);color:var(--te
     <div class="form-row"><input id="inComp" placeholder="회사명"><input id="inRole" placeholder="직무"></div>
     <div class="form-row"><input id="inDue" type="date"></div>
     <button class="btn" onclick="addApp()">공고 등록</button>
+  </div>
+  <div class="card">
+    <h2>🕷 자동 수집 공고 <span class="pct" id="autoCnt"></span></h2>
+    <div id="autoList"><div class="empty">크롤러가 수집한 공고가 여기 표시됩니다</div></div>
+    <div class="note">GitHub Actions 크롤러(사람인 API)가 매일 아침 jobs.json을 갱신하면 자동 표시. 탭하면 지원 목록에 등록됩니다.</div>
+  </div>
+  <div class="card">
+    <h2>📥 브리핑 가져오기</h2>
+    <div class="form-row"><input id="briefIn" placeholder='매일 브리핑 끝의 JSON을 붙여넣기'></div>
+    <button class="btn" onclick="importBrief()">일괄 등록</button>
+    <div class="note">Claude 매일 브리핑 맨 끝의 [{"c":...}] 블록을 복사해서 붙여넣으면 새 공고만 자동 추가됩니다 (중복 제외).</div>
   </div>
   <div class="card"><div id="appList"></div></div>
 </section>
@@ -323,14 +338,23 @@ function rollOver(){
  S.lastRoll=k;save();
 }
 
-// ---- 데이터 ----
+// ---- CKA 섹션 [이름, 주차, 가중치, 난이도(1~4), 공략 팁] ----
 const CKA=[
- ['Core Concepts','W1',12],['Scheduling','W1',7],['Logging & Monitoring','W1',2],
- ['Application Lifecycle Mgmt','W2',6],['Cluster Maintenance','W2',5],
- ['Security','W2',14],['Storage','W3',6],['Networking','W3',12],
- ['Design & Install Cluster','W4',3],['Install w/ kubeadm','W4',2],
- ['Helm / Kustomize','W4',4],['Troubleshooting','W4',7],
- ['Other Topics (JSONPath 등)','W4',3],['Mock Exams + Lightning Lab','W4',8],['killer.sh 2세션','W4',6]
+ ['Core Concepts','W1',12,2,'k run / k create deploy + --dry-run=client -o yaml 을 손에 붙이는 게 이 섹션의 전부. 시험 내내 씀. export do="--dry-run=client -o yaml" 추천'],
+ ['Scheduling','W1',7,3,'Taint=노드가 거부, Affinity=파드가 선호 — 이 둘의 조합 문제가 시험 단골. Static Pod 경로 /etc/kubernetes/manifests 암기 + kubelet config에서 경로 찾는 법까지'],
+ ['Logging & Monitoring','W1',2,1,'k logs, k top. 30분 컷, 쉬어가는 구간'],
+ ['Application Lifecycle Mgmt','W2',6,2,'k set image, k rollout undo/status/history 암기. ConfigMap→env 주입 vs volume 주입 두 방식 모두 연습. Init Container 순서 개념'],
+ ['Cluster Maintenance','W2',5,3,'etcd 백업/복원이 역대급 단골 — etcdctl snapshot save/restore의 인증서 플래그(--cacert --cert --key)와 복원 후 data-dir 수정까지 통암기. kubeadm 업그레이드는 순서(마스터 먼저, kubeadm→kubelet)가 함정'],
+ ['Security','W2',14,4,'⚠️ 강의 전체 최대 고비. CSR 생성→base64→승인 흐름, RBAC은 k auth can-i로 검증 습관, kubeconfig 구조, NetworkPolicy는 그림 그려가며. 여기서 밀리면 시험 8/22 연기 판단 기준'],
+ ['Storage','W3',6,2,'PVC가 Pending이면 accessModes/용량/StorageClass 불일치 3개만 확인하면 됨. 바인딩 조건 문제 단골'],
+ ['Networking','W3',12,4,'분량 최대. 앞부분(스위칭/라우팅/네임스페이스)은 군 통신병 경험으로 속행 → 아낀 시간을 Ingress에 투자. Ingress yaml은 공식문서 복붙 연습 필수. svc DNS 형식 name.ns.svc.cluster.local 암기'],
+ ['Design & Install Cluster','W4',3,2,'클러스터 설계 개념. init→join 토큰 흐름만 확실히'],
+ ['Install w/ kubeadm','W4',2,2,'kubeadm 부트스트랩 실습 1회'],
+ ['Helm / Kustomize','W4',4,2,'2024 개편 후 출제 범위. helm install/upgrade/rollback + kustomize base/overlay 구조'],
+ ['Troubleshooting','W4',7,4,'⚠️ 시험 배점 약 30%로 최대. 루틴 암기: 파드 안 뜨면 describe→Events / 노드 NotReady면 kubelet 상태→journalctl -u kubelet / kube-system 이상이면 static pod manifest 오타 확인. 랩 2회독'],
+ ['Other Topics (JSONPath 등)','W4',3,1,'-o jsonpath 기본형만'],
+ ['Mock Exams + Lightning Lab','W4',8,0,'각 회차 후 틀린 문제를 노트 탭에 CKA 태그로 기록'],
+ ['killer.sh 2세션','W4',6,0,'시험 등록 시 무료 제공. 실제 시험보다 어려워서 60점대 나와도 정상 — 좌절 금지. 8/12~13에 풀 것']
 ];
 const OPIC=[
  ['스크립트 15개 암기','7월~8월 초'],
@@ -345,33 +369,52 @@ const AIF=[
  ['시험 접수','8월 말'],
  ['합격','~9월 초']
 ];
+// ---- 프로젝트 (id 기반 · Phase 구조) ----
 const PROJ=[
- {n:'보안 앱 개발',d:'완료 · 자소서 소재',due:'완료',init:1},
- {n:'크롤링 앱 개발',d:'완료 · 자소서 소재',due:'완료',init:1},
- {n:'클라우드 보안 아키텍처 구성',d:'완료 · 부트캠프 프로젝트',due:'완료',init:1},
- {n:'멀티클라우드 웹서비스 마무리',d:'진행 중 → 기능 완성·배포',due:'~8/31',init:0},
- {n:'아키텍처 다이어그램 + README 정리',d:'멀티클라우드 문서화 (면접 필수)',due:'~8/31',init:0},
- {n:'취준 트래커 PWA 배포 + GitHub Actions CI/CD',d:'이 앱 · 파이프라인 경험 확보',due:'~8/23',init:0},
- {n:'포트폴리오/이력서 프로젝트란 최종 정리',d:'공채 지원 직전 완성',due:'~9/7',init:0}
+ {ph:'✅ 완료 — 자소서·면접 소재'},
+ {id:'p1',n:'보안 앱 개발',d:'완료',due:'완료',init:1},
+ {id:'p2',n:'크롤링 앱 개발',d:'완료',due:'완료',init:1},
+ {id:'p3',n:'클라우드 보안 아키텍처 구성',d:'완료 · 부트캠프',due:'완료',init:1},
+ {ph:'Phase 1 · 코어 완성',sub:'8/16~8/23 (CKA 이후 본격 투입)'},
+ {id:'f1',n:'아키텍처 최종 확정',d:'"왜 멀티클라우드인가" 한 문장 답 확정 — 면접 1순위 질문',due:'~8/23'},
+ {id:'f2',n:'앱 컨테이너화 + 배포 자동화',d:'가능하면 k8s 위에 — CKA와 시너지',due:'~8/23'},
+ {id:'f3',n:'클라우드 간 트래픽 분산',d:'DNS 장애조치(Route53 등) 또는 LB 이중화',due:'~8/23'},
+ {id:'f4',n:'DB/데이터 계층 전략',d:'복제 or 백업-복원 중 택1 + 근거 문서화',due:'~8/23'},
+ {ph:'Phase 2 · 운영 요소',sub:'8/24~8/31'},
+ {id:'g1',n:'모니터링·로깅 구성',d:'CloudWatch+대안 클라우드 or Prometheus/Grafana 중 1개',due:'~8/31'},
+ {id:'g2',n:'장애 시나리오 실증 ⭐',d:'한쪽 클라우드를 실제로 죽이고 생존 확인 → 기록/스크린샷 (킬러 콘텐츠)',due:'~8/31'},
+ {id:'g3',n:'GitHub Actions CI/CD 연결',d:'트래커 앱 배포로 먼저 연습해도 됨',due:'~8/31'},
+ {id:'g4',n:'월 예상 비용표 작성',d:'"비용까지 계산했다" = 신입 차별화 포인트',due:'~8/31'},
+ {ph:'Phase 3 · 문서화',sub:'9/1~9/7 (공채 지원 직전)'},
+ {id:'h1',n:'아키텍처 다이어그램 1장',d:'draw.io — 안 보고 그릴 수 있을 때까지 (면접 "그려보세요" 대비)',due:'~9/7'},
+ {id:'h2',n:'README 작성',d:'문제의식→아키텍처→선택 근거(트레이드오프)→장애 테스트 결과→비용→회고',due:'~9/7'},
+ {id:'h3',n:'이력서 프로젝트란 3줄 요약',d:'포트폴리오 최종 반영',due:'~9/7'},
+ {id:'h4',n:'예상 면접질문 5개 + 답변',d:'노트 탭에 면접 태그로 등록',due:'~9/7'}
 ];
-if(!S.proj){S.proj={};PROJ.forEach((p,i)=>{if(p.init)S.proj[i]=true});}
+const PROJ_ITEMS=PROJ.filter(p=>p.id);
+// 마이그레이션: 구버전(인덱스 기반 S.proj) → id 기반 S.proj2
+if(!S.proj2){
+ S.proj2={};
+ PROJ_ITEMS.forEach(p=>{if(p.init)S.proj2[p.id]=true});
+ if(S.proj){ if(S.proj[3])S.proj2.f2=true; if(S.proj[4])S.proj2.h1=true; if(S.proj[5])S.proj2.g3=true; if(S.proj[6])S.proj2.h3=true; }
+ save();
+}
 const GOALS=[
  ['W1 · 7/20~','Core Concepts 마무리 + Scheduling + Logging&Monitoring'],
  ['W2 · 7/27~','App Lifecycle + Cluster Maintenance + Security'],
  ['W3 · 8/3~','Storage + Networking 완강'],
  ['W4 · 8/10~','Mock/killer.sh → 8/15 CKA 시험 · 8/14 오픽'],
- ['8월 하순','AI Practitioner 시작 + 멀티클라우드 마무리'],
- ['9월','하반기 공채 지원 (1티어: CJ올네·삼성SDS) + AIF 취득'],
+ ['8월 하순','AIF 시작 + 프로젝트 Phase 1~2'],
+ ['9월','하반기 공채 지원 (1티어: CJ올네·삼성SDS) + AIF 취득 + Phase 3'],
  ['10월','정처기 실기 응시 (접수 9/21 — 일단 응시는 하기)']
 ];
 const DDAYS=[['오픽','2026-08-14'],['CKA 시험','2026-08-15'],['공채 시즌','2026-09-01'],['AIF 목표','2026-09-06'],['정처기 접수','2026-09-21'],['데드라인','2027-02-01']];
 const W={cka:35,proj:30,opic:20,aif:15};
-// 페이스 계획선: [시작일, 시작%, 종료일, 종료%]
 const PLAN={
  cka:['2026-07-17',8,'2026-08-15',100],
  opic:['2026-07-20',0,'2026-09-01',100],
  aif:['2026-08-16',0,'2026-09-06',100],
- proj:['2026-07-17',43,'2026-09-07',100]
+ proj:['2026-07-17',19,'2026-09-07',100]
 };
 
 const today=()=>key(new Date());
@@ -380,8 +423,9 @@ const fmt=d=>`${d.getMonth()+1}/${d.getDate()} (${'일월화수목금토'[d.getD
 // ---- 트랙 % ----
 function ckaP(){const t=CKA.reduce((a,c)=>a+c[2],0);return CKA.reduce((a,c,i)=>a+c[2]*(S.cka[i]||0)/100,0)/t*100}
 function listP(state,arr){return Object.keys(state).filter(k=>state[k]).length/arr.length*100}
+function projP(){return PROJ_ITEMS.filter(p=>S.proj2[p.id]).length/PROJ_ITEMS.length*100}
 function totalP(){
- return Math.round((ckaP()*W.cka+listP(S.proj,PROJ)*W.proj+listP(S.opic,OPIC)*W.opic+listP(S.aif,AIF)*W.aif)/100);
+ return Math.round((ckaP()*W.cka+projP()*W.proj+listP(S.opic,OPIC)*W.opic+listP(S.aif,AIF)*W.aif)/100);
 }
 // ---- 페이스 ----
 function planP(cfg){
@@ -390,7 +434,7 @@ function planP(cfg){
  return p0+(p1-p0)*(now-a)/(b-a);
 }
 function renderPace(){
- const act={cka:ckaP(),proj:listP(S.proj,PROJ),opic:listP(S.opic,OPIC),aif:listP(S.aif,AIF)};
+ const act={cka:ckaP(),proj:projP(),opic:listP(S.opic,OPIC),aif:listP(S.aif,AIF)};
  const exp={cka:planP(PLAN.cka),proj:planP(PLAN.proj),opic:planP(PLAN.opic),aif:planP(PLAN.aif)};
  const actT=(act.cka*W.cka+act.proj*W.proj+act.opic*W.opic+act.aif*W.aif)/100;
  const expT=(exp.cka*W.cka+exp.proj*W.proj+exp.opic*W.opic+exp.aif*W.aif)/100;
@@ -408,7 +452,7 @@ function renderHero(){
  document.getElementById('hTitle').textContent=`취준 ${p}%`;
  document.getElementById('heroPct').textContent=p+'%';
  document.getElementById('heroPct').style.color=p>=70?'var(--green)':p>=35?'var(--accent)':'var(--text)';
- const tr=[['CKA',ckaP(),'var(--accent)'],['프로젝트',listP(S.proj,PROJ),'var(--purple)'],['오픽 IH',listP(S.opic,OPIC),'var(--green)'],['AI Practitioner',listP(S.aif,AIF),'var(--amber)']];
+ const tr=[['CKA',ckaP(),'var(--accent)'],['프로젝트',projP(),'var(--purple)'],['오픽 IH',listP(S.opic,OPIC),'var(--green)'],['AI Practitioner',listP(S.aif,AIF),'var(--amber)']];
  document.getElementById('trackList').innerHTML=tr.map(([n,v,c])=>
   `<div class="track"><span class="nm"><i style="background:${c}"></i>${n}</span><span class="tb"><b style="width:${v}%;background:${c}"></b></span><span class="pv">${Math.round(v)}%</span></div>`).join('');
  renderPace();
@@ -434,7 +478,6 @@ function dayRatio(d){
 }
 function renderHeat(){
  const now=new Date(today());
- // 이번 주 일요일 기준 8주 전 일요일부터
  const end=new Date(now);end.setDate(end.getDate()+(6-end.getDay()));
  const start=new Date(end);start.setDate(start.getDate()-55);
  let html='';
@@ -446,13 +489,12 @@ function renderHeat(){
   html+=`<i class="${lv} ${kk===today()?'today':''}"></i>`;
  }
  document.getElementById('heatmap').innerHTML=html;
- // 스트릭 (50% 이상 = 달성일)
  let st=0;
  for(let o=0;;o++){
   const d=new Date(Date.now()-o*864e5),r=dayRatio(d);
-  if(r===null){if(o>60)break;continue;} // 항목 없는 날은 스킵
+  if(r===null){if(o>60)break;continue;}
   if(r>=0.5)st++;
-  else{if(o===0)continue;break;} // 오늘 미달은 아직 안 끝난 것
+  else{if(o===0)continue;break;}
   if(o>60)break;
  }
  document.getElementById('streakLbl').textContent=st>0?`🔥 ${st}일 연속`:'';
@@ -537,26 +579,28 @@ function impData(inp){
  r.readAsText(f);inp.value='';
 }
 
-// ---- CKA ----
+// ---- CKA (난이도 + 탭하면 팁) ----
+let tipOpen={};
 function renderCka(){
- document.getElementById('ckaList').innerHTML=CKA.map(([n,w],idx)=>{
+ document.getElementById('ckaList').innerHTML=CKA.map(([n,w,wt,df,tip],idx)=>{
   const p=S.cka[idx]||0;
-  return `<div class="sec-row"><div class="sec-top"><span><span class="w">${w}</span>${n}</span><span class="p">${p}%</span></div>
+  const stars=df?'<span class="stars">'+'★'.repeat(df)+'</span>':'';
+  return `<div class="sec-row">
+   <div class="sec-top" onclick="togTip(${idx})"><span><span class="w">${w}</span>${n}${stars}</span><span class="p">${p}%</span></div>
+   <div class="tip ${tipOpen[idx]?'on':''}">${tip}</div>
    <div class="steps">${[0,25,50,75,100].map(v=>`<b class="${p>=v&&v>0?'on':''}" onclick="setCka(${idx},${v})">${v}</b>`).join('')}</div></div>`;
  }).join('');
  const pct=Math.round(ckaP());
  document.getElementById('ckaPct').textContent=pct+'%';
  document.getElementById('ckaBar').style.width=pct+'%';
 }
+function togTip(i){tipOpen[i]=!tipOpen[i];renderCka();}
 function setCka(i,v){S.cka[i]=v;save();renderCka();renderHero();}
 
 // ---- 체크리스트 트랙 ----
-function renderCheck(arr,state,listId,pctId,barId,toggler,isProj){
+function renderCheck(arr,state,listId,pctId,barId,toggler){
  document.getElementById(listId).innerHTML=arr.map((it,i)=>{
   const done=state[i];
-  if(isProj)return `<div class="proj ${done?'done':''}" onclick="${toggler}(${i})">
-   <div class="chk" style="${done?'background:var(--green);border-color:var(--green)':''}">${done?'✓':''}</div>
-   <div class="t"><b>${it.n}</b><span>${it.d}</span></div><span class="due ${it.due==='완료'?'done':''}">${it.due}</span></div>`;
   return `<div class="item ${done?'done':''}" onclick="${toggler}(${i})">
    <div class="chk">${done?'✓':''}</div><div class="t">${it[0]}</div><div class="tm">${it[1]}</div></div>`;
  }).join('');
@@ -566,10 +610,23 @@ function renderCheck(arr,state,listId,pctId,barId,toggler,isProj){
 }
 const renderOpic=()=>renderCheck(OPIC,S.opic,'opicList','opicPct','opicBar','togOpic');
 const renderAif=()=>renderCheck(AIF,S.aif,'aifList','aifPct','aifBar','togAif');
-const renderProj=()=>renderCheck(PROJ,S.proj,'projList','projPct','projBar','togProj',true);
 function togOpic(i){S.opic[i]=!S.opic[i];save();renderOpic();renderHero();}
 function togAif(i){S.aif[i]=!S.aif[i];save();renderAif();renderHero();}
-function togProj(i){S.proj[i]=!S.proj[i];save();renderProj();renderHero();}
+
+// ---- 프로젝트 (Phase 그룹) ----
+function renderProj(){
+ document.getElementById('projList').innerHTML=PROJ.map(p=>{
+  if(p.ph)return `<div class="phase">${p.ph}${p.sub?`<span>${p.sub}</span>`:''}</div>`;
+  const done=S.proj2[p.id];
+  return `<div class="proj ${done?'done':''}" onclick="togProj('${p.id}')">
+   <div class="chk" style="${done?'background:var(--green);border-color:var(--green)':''}">${done?'✓':''}</div>
+   <div class="t"><b>${p.n}</b><span>${p.d}</span></div><span class="due ${p.due==='완료'?'done':''}">${p.due}</span></div>`;
+ }).join('');
+ const pv=Math.round(projP());
+ document.getElementById('projPct').textContent=pv+'%';
+ document.getElementById('projBar').style.width=pv+'%';
+}
+function togProj(id){S.proj2[id]=!S.proj2[id];save();renderProj();renderHero();}
 
 // ---- 목표 ----
 function renderGoal(){
@@ -628,15 +685,40 @@ function addApp(){
 }
 function togS(i){S.apps[i].s=(S.apps[i].s+1)%5;save();renderApp();}
 function delApp(i){if(confirm('삭제할까요?')){S.apps.splice(i,1);save();renderApp();}}
+function importBrief(){
+ const raw=document.getElementById('briefIn').value.trim();
+ if(!raw)return;
+ try{
+  // 코드블록 마크다운이 섞여 와도 [ ... ] 부분만 추출
+  const m=raw.match(/\[[\s\S]*\]/);
+  if(!m)throw 0;
+  const arr=JSON.parse(m[0]);
+  if(!Array.isArray(arr))throw 0;
+  let added=0;
+  arr.forEach(x=>{
+   const c=(x.c||x.회사||'').trim(),r=(x.r||x.직무||'').trim(),due=(x.due||x.마감||'').trim();
+   if(!c)return;
+   if(S.apps.some(a=>a.c===c&&a.r===r))return; // 중복 제외
+   S.apps.push({c,r,due,s:0});added++;
+  });
+  save();renderApp();
+  document.getElementById('briefIn').value='';
+  alert(added?`${added}건 등록 완료 (중복 ${arr.length-added}건 제외)`:'전부 이미 등록된 공고입니다.');
+ }catch(e){alert('형식을 인식하지 못했어요. [{"c":"회사","r":"직무","due":"2026-09-15"}] 형태의 JSON을 붙여넣어 주세요.');}
+}
 
-// ---- 알림 ----
-let timers=[];
+// ---- 알림 (iOS는 서비스워커 알림만 지원) ----
+let timers=[],swReg=null;
+function notify(title,body){
+ if(swReg&&swReg.showNotification){swReg.showNotification(title,{body,icon:'icon-180.png',badge:'icon-180.png'});return;}
+ try{new Notification(title,{body});}catch(e){}
+}
 function togNotif(){
  if(S.notif){S.notif=false;save();updateBell();timers.forEach(clearTimeout);timers=[];return;}
- if(!('Notification' in window)){alert('이 브라우저는 알림 미지원. 홈 화면에 추가한 앱에서 시도하세요 (iOS 16.4+)');return;}
+ if(!('Notification' in window)){alert('알림을 쓰려면 사파리에서 홈 화면에 추가한 앱으로 열어주세요 (iOS 16.4+)');return;}
  Notification.requestPermission().then(p=>{
-  if(p==='granted'){S.notif=true;save();updateBell();scheduleToday();new Notification('취준 트래커',{body:'알림 ON — 오늘 남은 블록 시작 시 알려드려요'});}
-  else alert('알림 권한이 거부되었습니다. 설정에서 허용해주세요.');
+  if(p==='granted'){S.notif=true;save();updateBell();scheduleToday();notify('취준 트래커','알림 ON — 오늘 남은 블록 시작 시 알려드려요');}
+  else alert('알림 권한이 거부되었습니다. 설정 > 앱별 알림에서 허용해주세요.');
  });
 }
 function updateBell(){
@@ -653,8 +735,38 @@ function scheduleToday(){
   if(isNaN(h))return;
   const t=new Date(now);t.setHours(h,0,0,0);
   const diff=t-now;
-  if(diff>0&&diff<12*3600*1000)timers.push(setTimeout(()=>new Notification('⏰ '+it.t,{body:(it.tm||'')+' 블록 시작!'}),diff));
+  if(diff>0&&diff<12*3600*1000)timers.push(setTimeout(()=>notify('⏰ '+it.t,(it.tm||'')+' 블록 시작!'),diff));
  });
+}
+
+// ---- 자동 수집 공고 (jobs.json) ----
+S.hiddenJobs=S.hiddenJobs||{};
+let autoJobs=[];
+function jobKey(j){return (j.c||'')+'|'+(j.r||'');}
+function fetchJobs(){
+ fetch('jobs.json?t='+Date.now()).then(r=>r.ok?r.json():[]).then(arr=>{
+  if(!Array.isArray(arr))return;
+  autoJobs=arr;renderAuto();
+ }).catch(()=>{});
+}
+function renderAuto(){
+ const list=autoJobs.filter(j=>j.c&&!S.hiddenJobs[jobKey(j)]&&!S.apps.some(a=>a.c===j.c&&a.r===j.r));
+ document.getElementById('autoCnt').textContent=list.length?list.length+'건':'';
+ document.getElementById('autoList').innerHTML=list.map((j,i)=>{
+  const idx=autoJobs.indexOf(j);
+  return `<div class="app-row"><div class="app-top"><b>${j.c}</b><span class="dd">${j.due||''}</span></div>
+   <div class="app-bot"><span class="role">${j.r||''}${j.src?' · '+j.src:''}</span>
+   <span><span class="st s1" onclick="regAuto(${idx})">+ 등록</span>${j.url?`<a href="${j.url}" target="_blank" class="del">공고↗</a>`:''}<button class="del" onclick="hideAuto(${idx})">숨김</button></span></div></div>`;
+ }).join('')||'<div class="empty">새 공고 없음 (크롤러 설정 전이면 항상 비어 있음)</div>';
+}
+function regAuto(i){
+ const j=autoJobs[i];if(!j)return;
+ S.apps.push({c:j.c,r:j.r||'',due:j.due||'',s:0});
+ save();renderApp();renderAuto();
+}
+function hideAuto(i){
+ const j=autoJobs[i];if(!j)return;
+ S.hiddenJobs[jobKey(j)]=true;save();renderAuto();
 }
 
 // ---- 탭 ----
@@ -666,8 +778,9 @@ function tab(id,btn){
 }
 rollOver();
 renderDday();renderToday();renderCka();renderOpic();renderAif();renderProj();renderGoal();renderNote();renderApp();renderHero();updateBell();
-if(S.notif)scheduleToday();
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').then(r=>{swReg=r;if(S.notif)scheduleToday();}).catch(()=>{if(S.notif)scheduleToday();});
+else if(S.notif)scheduleToday();
+fetchJobs();
 </script>
 </body>
 </html>
