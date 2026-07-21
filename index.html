@@ -78,6 +78,13 @@ section{padding:6px 18px}
 .stars{font-size:10px;color:var(--amber);margin-left:5px;letter-spacing:-1px}
 .tip{display:none;font-size:12px;color:var(--sub);background:var(--card2);border-radius:9px;padding:9px 11px;margin-bottom:8px;line-height:1.55}
 .tip.on{display:block}
+.lecs{display:none}
+.lecs.on{display:block}
+.lec{display:flex;align-items:center;gap:9px;padding:8px 4px 8px 8px;font-size:13px;color:var(--text);cursor:pointer;border-bottom:1px solid var(--line)}
+.lec:last-child{border-bottom:none}
+.lec.done{color:var(--sub);text-decoration:line-through}
+.lchk{width:19px;height:19px;border-radius:6px;border:2px solid #cfd5e2;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff}
+.lec.done .lchk{background:var(--green);border-color:var(--green)}
 .steps{display:flex;gap:6px}
 .steps b{flex:1;height:27px;border-radius:8px;background:var(--card2);font-size:10px;color:var(--sub);display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:600}
 .steps b.on{background:var(--accent);color:#fff}
@@ -196,7 +203,7 @@ input,select{background:var(--card2);border:1px solid var(--line);color:var(--te
   <div class="card">
     <h2>☸️ CKA <span class="pct" id="ckaPct"></span></h2>
     <div class="bar"><i id="ckaBar"></i></div>
-    <div class="big-lbl">섹션명을 탭하면 난이도·공략 팁이 열립니다</div>
+    <div class="big-lbl">섹션 탭 → 강의별 체크. 오늘 진도는 마지막 체크 다음 강의부터 자동</div>
     <div id="ckaList"></div>
   </div>
   <div class="card">
@@ -436,7 +443,7 @@ const today=()=>key(new Date());
 const fmt=d=>`${d.getMonth()+1}/${d.getDate()} (${'일월화수목금토'[d.getDay()]})`;
 
 // ---- 트랙 % ----
-function ckaP(){const t=CKA.reduce((a,c)=>a+c[2],0);return CKA.reduce((a,c,i)=>a+c[2]*(S.cka[i]||0)/100,0)/t*100}
+function ckaP(){const t=CKA.reduce((a,c)=>a+c[2],0);return CKA.reduce((a,c,i)=>a+c[2]*secP(i)/100,0)/t*100}
 function listP(state,arr){return Object.keys(state).filter(k=>state[k]).length/arr.length*100}
 function projP(){return PROJ_ITEMS.filter(p=>S.proj2[p.id]).length/PROJ_ITEMS.length*100}
 function totalP(){
@@ -516,18 +523,46 @@ function renderHeat(){
 }
 
 // ---- 오늘 루틴 ----
-// ---- CKA 학습 블록: 체크 안 한 다음 섹션부터 동적으로 표시 ----
-// CKA 탭에서 100% 체크한 섹션은 건너뛰고, 다음 미완료 섹션을 오늘 진도로 안내
-function nextCka(n){
- return CKA.map((c,i)=>({name:c[0],p:S.cka[i]||0})).filter(x=>x.p<100).slice(0,n);
-}
+// ---- CKA 강의별 세부 목록 (섹션 index 0~17에 대응) ----
+const SUBS=[
+ ['강의·시험 소개','강의 노트 안내'],
+ ['클러스터 아키텍처','ETCD','kube-apiserver','controller-manager','kube-scheduler','kubelet·kube-proxy','Pod','ReplicaSet','Deployment','Namespace','Service','명령형 kubectl'],
+ ['수동 스케줄링','Label·Selector','Taint·Toleration','Node Affinity','자원 관리(Request/Limit/Quota)','DaemonSet','Static Pod','PriorityClass','다중 Scheduler','Admission Controller'],
+ ['클러스터 모니터링(metrics-server)','애플리케이션 로그'],
+ ['Rolling Update·Rollback','Command·Args','환경변수·ConfigMap','Secret','다중 컨테이너 Pod','Init Container','Self-Healing·HPA·VPA'],
+ ['OS 업그레이드(drain/cordon)','버전·스큐','클러스터 업그레이드(kubeadm)','백업·복원(etcd)'],
+ ['보안 원리','인증','TLS·PKI','Certificate API(CSR)','kubeconfig','API Group·Authorization','RBAC','ClusterRole','ServiceAccount','이미지·SecurityContext','NetworkPolicy','CRD·Operator'],
+ ['Docker Storage','CSI','Volume','PersistentVolume','PVC','StorageClass'],
+ ['Linux 네트워킹 기초','DNS','Network Namespace','Docker Networking','CNI','Cluster Networking','Pod Networking','Service Networking','CoreDNS','Ingress','Gateway API'],
+ ['클러스터 설계','인프라 선택','고가용성','etcd HA','The Hard Way 안내'],
+ ['배포 개요','VM 프로비저닝','kubeadm 배포 데모','join 실습·보너스'],
+ ['애플리케이션 장애','Control Plane 장애','Worker Node 장애','네트워크 장애'],
+ ['JSONPath','고급 kubectl 명령'],
+ ['Lightning Lab 1','Lightning Lab 2'],
+ ['Mock Exam 1','Mock Exam 2','Mock Exam 3'],
+ ['Ultimate Mock 1','Ultimate Mock 2'],
+ ['NetworkPolicy 테스트 서버','네트워크 테스트 client','시험 수행 전략'],
+ ['killer.sh 세션 1','killer.sh 세션 2']
+];
+S.ckaLec=S.ckaLec||{};                       // {"sec_lec":true}
+const lecKey=(s,l)=>s+'_'+l;
+const secDone=i=>SUBS[i].reduce((a,_,l)=>a+(S.ckaLec[lecKey(i,l)]?1:0),0);
+const secP=i=>SUBS[i].length?secDone(i)/SUBS[i].length*100:0;
+// 전체 강의를 순서대로 펼친 목록 (스케줄러가 "다음 미완료 강의"를 찾는 기준)
+const FLAT=[];
+SUBS.forEach((arr,s)=>arr.forEach((name,l)=>FLAT.push({s,l,name,sec:CKA[s][0]})));
+function nextLec(n){return FLAT.filter(x=>!S.ckaLec[lecKey(x.s,x.l)]).slice(0,n);}
+
+// ---- 스케줄러: 내가 체크한 마지막 강의 다음부터, 일관되게 ----
 function studyLabel(d,it){
  if(!/CKA/.test(it.t))return it.t;
  const h=(it.t.match(/\d+h/)||[''])[0];      // 블록 시간 유지
- const nx=nextCka(2);
- if(nx.length===0)return `☸️ CKA 전 섹션 완료! 모의고사·오답 복습${h?' · '+h:''}`;
- let s=`☸️ ${nx[0].name}`+(nx[0].p>0?` (${nx[0].p}%~)`:'');
- if(nx[1])s+=` → ${nx[1].name}`;
+ const nx=nextLec(2);
+ if(nx.length===0)return `☸️ 전 강의 완료! 모의고사·오답 복습${h?' · '+h:''}`;
+ const secShort=nx[0].sec.replace(/^\d+\.\s*/,'').slice(0,7);
+ let s=`☸️ ${secShort} ▸ ${nx[0].name}`;
+ if(nx[1]&&nx[1].s===nx[0].s)s+=` → ${nx[1].name}`;
+ else if(nx[1])s+=` → (다음: ${nx[1].sec.replace(/^\d+\.\s*/,'').slice(0,6)})`;
  return s+(h?` · ${h}`:'');
 }
 function renderToday(){
@@ -612,19 +647,23 @@ function impData(inp){
 let tipOpen={};
 function renderCka(){
  document.getElementById('ckaList').innerHTML=CKA.map(([n,w,wt,df,tip],idx)=>{
-  const p=S.cka[idx]||0;
+  const done=secDone(idx),tot=SUBS[idx].length,p=Math.round(secP(idx));
   const stars=df?'<span class="stars">'+'★'.repeat(df)+'</span>':'';
+  const lecs=SUBS[idx].map((nm,l)=>{
+   const c=S.ckaLec[lecKey(idx,l)];
+   return `<div class="lec ${c?'done':''}" onclick="togLec(${idx},${l})"><span class="lchk">${c?'✓':''}</span>${nm}</div>`;
+  }).join('');
   return `<div class="sec-row">
-   <div class="sec-top" onclick="togTip(${idx})"><span><span class="w">${w}</span>${n}${stars}</span><span class="p">${p}%</span></div>
-   <div class="tip ${tipOpen[idx]?'on':''}">${tip}</div>
-   <div class="steps">${[0,25,50,75,100].map(v=>`<b class="${p>=v&&v>0?'on':''}" onclick="setCka(${idx},${v})">${v}</b>`).join('')}</div></div>`;
+   <div class="sec-top" onclick="togTip(${idx})"><span><span class="w">${w}</span>${n}${stars}</span><span class="p">${done}/${tot} · ${p}%</span></div>
+   <div class="tip ${tipOpen[idx]?'on':''}">💡 ${tip}</div>
+   <div class="lecs ${tipOpen[idx]?'on':''}">${lecs}</div></div>`;
  }).join('');
  const pct=Math.round(ckaP());
  document.getElementById('ckaPct').textContent=pct+'%';
  document.getElementById('ckaBar').style.width=pct+'%';
 }
 function togTip(i){tipOpen[i]=!tipOpen[i];renderCka();}
-function setCka(i,v){S.cka[i]=v;save();renderCka();renderHero();}
+function togLec(s,l){const k=lecKey(s,l);if(S.ckaLec[k])delete S.ckaLec[k];else S.ckaLec[k]=true;save();renderCka();renderHero();}
 
 // ---- 체크리스트 트랙 ----
 function renderCheck(arr,state,listId,pctId,barId,toggler){
