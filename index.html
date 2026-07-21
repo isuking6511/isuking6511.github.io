@@ -516,6 +516,39 @@ function renderHeat(){
 }
 
 // ---- 오늘 루틴 ----
+// ---- 날짜별 CKA 강의 진도 (뭄샤드 목차 기준, 4주 압축) ----
+const CURR={
+ '2026-07-20':'2.핵심개념 ① 아키텍처·etcd·컨트롤플레인',
+ '2026-07-21':'2.핵심개념 ② Pod~ReplicaSet~Deployment~Service~명령형+실습',
+ '2026-07-22':'3.스케줄링 ① 수동스케줄링·Label·Taint/Toleration',
+ '2026-07-23':'3.스케줄링 ② NodeAffinity·자원·DaemonSet/StaticPod·다중Scheduler·Admission',
+ '2026-07-24':'4.로깅·모니터링 + 스케줄링 Practice Test',
+ '2026-07-25':'W1 복습 + Practice Test (핵심개념·스케줄링) 전회독',
+ '2026-07-27':'5.앱수명주기 ① 업데이트/롤백·Command/Args·ConfigMap',
+ '2026-07-28':'5.앱수명주기 ② Secret·다중컨테이너·InitContainer·HPA/VPA',
+ '2026-07-29':'6.클러스터유지관리 (drain/cordon·업그레이드·etcd 백업/복원)',
+ '2026-07-30':'7.보안 ① 인증·TLS/PKI·인증서 생성',
+ '2026-07-31':'7.보안 ② Certificate API·kubeconfig·RBAC',
+ '2026-08-01':'7.보안 ③ ClusterRole·SA·이미지보안·NetworkPolicy + Practice Test',
+ '2026-08-04':'7.보안 마무리(NetworkPolicy·CRD) + 8.스토리지 전체(PV/PVC·SC)',
+ '2026-08-05':'9.네트워킹 ① Linux네트워킹·DNS·NetworkNamespace',
+ '2026-08-06':'9.네트워킹 ② Docker네트워킹·CNI·Cluster/Pod Networking',
+ '2026-08-07':'9.네트워킹 ③ Service Networking·CoreDNS·Ingress',
+ '2026-08-08':'9.네트워킹 ④ Gateway API + Mock Exam 1',
+ '2026-08-11':'10.설계설치 + 11.kubeadm + 12.트러블슈팅①(앱·컨트롤플레인)',
+ '2026-08-12':'12.트러블슈팅②(워커노드·네트워크) + killer.sh 세션1',
+ '2026-08-13':'13.JSONPath·14.Lightning·15.Mock 1~3 + killer.sh 세션2',
+ '2026-08-14':'오픽 응시일 · 17.시험팁·16.Ultimate Mock 가볍게',
+ '2026-08-15':'🎯 CKA 시험 D-DAY'
+};
+function studyLabel(d,it){
+ const c=CURR[key(d)];
+ if(c&&/CKA/.test(it.t)){
+  const h=it.t.match(/\d+h/);
+  return `☸️ ${c}`+(h?` · ${h[0]}`:'');
+ }
+ return it.t;
+}
 function renderToday(){
  const d=new Date(),k=today();
  S.routine[k]=S.routine[k]||{};
@@ -534,7 +567,7 @@ function renderToday(){
   const chip=it.custom?`<span class="cust-chip">내 일정${it.custom.rep==='daily'?'·매일':it.custom.rep==='weekly'?'·매주':''}</span>`:'';
   const del=it.custom?`<button class="delx" onclick="event.stopPropagation();delCustom(${it.custom.id})">✕</button>`:'';
   return `<div class="item ${done?'done':''} ${it.s?'':'fixed'}" onclick="togR('${it.id}')">
-    <div class="chk">${done?'✓':''}</div><div class="t">${chip}${it.t}</div><div class="tm">${it.tm}</div>${del}</div>`;
+    <div class="chk">${done?'✓':''}</div><div class="t">${chip}${studyLabel(d,it)}</div><div class="tm">${it.tm}</div>${del}</div>`;
  }).join('');
  document.getElementById('todayList').innerHTML=html||'<div class="empty">오늘은 일정 없음</div>';
  const study=items.filter(x=>x.s);
@@ -750,7 +783,7 @@ function scheduleToday(){
   if(isNaN(h))return;
   const t=new Date(now);t.setHours(h,0,0,0);
   const diff=t-now;
-  if(diff>0&&diff<12*3600*1000)timers.push(setTimeout(()=>notify('⏰ '+it.t,(it.tm||'')+' 블록 시작!'),diff));
+  if(diff>0&&diff<12*3600*1000)timers.push(setTimeout(()=>notify('⏰ '+studyLabel(now,it),(it.tm||'')+' 블록 시작!'),diff));
  });
 }
 
