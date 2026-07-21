@@ -314,8 +314,12 @@ const itemsFor=d=>[
 ];
 
 // ---- 이월 ----
+// 규칙: 실제로 '한 개라도 체크한 날'의 미완료 항목만 다음날로 넘긴다.
+// 앱을 안 열었거나 아무것도 안 누른 날(시드 일정만 있는 날)은 이월시키지 않음.
 function rollOver(){
  const k=key(new Date());
+ // 한 번 초기화: 잘못 쌓인 시드 이월 제거
+ if(!S.rollReset){S.backlog=[];S.rollReset=1;S.lastRoll=k;save();return;}
  if(S.lastRoll===k)return;
  if(!S.lastRoll){S.lastRoll=k;save();return;}
  S.backlog=S.backlog.filter(b=>!b.done);
@@ -325,6 +329,7 @@ function rollOver(){
   const d=new Date(t),kk=key(d);
   if(kk>=k)break;
   const done=S.routine[kk]||{};
+  if(Object.keys(done).length===0)continue; // 그날 아무 체크도 안 했으면 스킵
   itemsFor(d).forEach(it=>{
    if(!it.s)return;
    if(it.custom&&it.custom.rep!=='once')return;
