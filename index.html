@@ -328,10 +328,10 @@ function rollOver(){
  const k=key(new Date());
  // 한 번 초기화: 잘못 쌓인 시드 이월 제거
  if(!S.rollReset){S.backlog=[];S.rollReset=1;S.lastRoll=k;save();return;}
- // 기존에 "CKA 핸즈온/모의시험" 같은 뭉뚱그린 텍스트로 저장된 이월 → 진도명으로 교체
- if(!S.rollFix2){
-  S.backlog.forEach(b=>{if(/CKA\s*(핸즈온|모의)/.test(b.t))b.t=studyLabel(new Date(),{t:b.t,s:1});});
-  S.rollFix2=1;save();
+ // CKA는 트랙 탭 강의 체크로 진도가 이어지므로 이월 대상에서 제외 → 기존 CKA 이월 정리
+ if(!S.rollFix3){
+  S.backlog=S.backlog.filter(b=>!/CKA|☸️/.test(b.t));
+  S.rollFix3=1;save();
  }
  if(S.lastRoll===k)return;
  if(!S.lastRoll){S.lastRoll=k;save();return;}
@@ -345,11 +345,12 @@ function rollOver(){
   if(Object.keys(done).length===0)continue; // 그날 아무 체크도 안 했으면 스킵
   itemsFor(d).forEach(it=>{
    if(!it.s)return;
+   if(/CKA\s*(핸즈온|모의)/.test(it.t))return; // CKA는 강의 체크로 진도가 이어짐 → 이월 안 함
    if(it.custom&&it.custom.rep!=='once')return;
    if(done[it.id])return;
    const uid=kk+'/'+it.id;
    if(S.backlog.some(b=>b.uid===uid))return;
-   S.backlog.push({uid,t:studyLabel(d,it),tm:it.tm,from:kk,done:false});
+   S.backlog.push({uid,t:it.t,tm:it.tm,from:kk,done:false});
   });
  }
  if(S.backlog.length>10)S.backlog=S.backlog.slice(-10);
