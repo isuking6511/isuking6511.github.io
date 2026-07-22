@@ -328,6 +328,11 @@ function rollOver(){
  const k=key(new Date());
  // 한 번 초기화: 잘못 쌓인 시드 이월 제거
  if(!S.rollReset){S.backlog=[];S.rollReset=1;S.lastRoll=k;save();return;}
+ // 기존에 "CKA 핸즈온/모의시험" 같은 뭉뚱그린 텍스트로 저장된 이월 → 진도명으로 교체
+ if(!S.rollFix2){
+  S.backlog.forEach(b=>{if(/CKA\s*(핸즈온|모의)/.test(b.t))b.t=studyLabel(new Date(),{t:b.t,s:1});});
+  S.rollFix2=1;save();
+ }
  if(S.lastRoll===k)return;
  if(!S.lastRoll){S.lastRoll=k;save();return;}
  S.backlog=S.backlog.filter(b=>!b.done);
