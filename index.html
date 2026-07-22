@@ -261,10 +261,15 @@ input,select{background:var(--card2);border:1px solid var(--line);color:var(--te
     <button class="btn" onclick="addApp()">공고 등록</button>
   </div>
   <div class="card">
-    <h2>📥 매일 브리핑 공고 등록</h2>
-    <div class="form-row"><input id="briefIn" placeholder='매일 브리핑 끝의 JSON 블록을 붙여넣기'></div>
+    <h2>🕷 자동 수집 공고 <span class="pct" id="autoCnt"></span></h2>
+    <div id="autoList"><div class="empty">매일 아침 자동 갱신됩니다</div></div>
+    <div class="note">Claude 예약작업이 매일 공고를 검색해 jobs.json에 자동 커밋 → 여기 표시. 탭하면 지원 목록에 등록됩니다.</div>
+  </div>
+  <div class="card">
+    <h2>📥 수동 등록 (브리핑 붙여넣기)</h2>
+    <div class="form-row"><input id="briefIn" placeholder='JSON 블록 붙여넣기 (자동 갱신 백업용)'></div>
     <button class="btn" onclick="importBrief()">일괄 등록</button>
-    <div class="note">아침 Claude 브리핑 맨 끝의 [{"c":...}] 블록을 복사 → 여기 붙여넣고 등록. 중복은 자동 제외됩니다.</div>
+    <div class="note">자동 갱신이 안 될 때 대비. 브리핑 끝 [{"c":...}] 블록을 붙여넣으면 중복 빼고 등록.</div>
   </div>
   <div class="card"><div id="appList"></div></div>
 </section>
@@ -305,8 +310,18 @@ const R_AUG={
  6:R_JULY[6],
  0:R_JULY[0]
 };
+// CKA·오픽 끝난 뒤(8/16~): 프로젝트 + AIF 중심으로 전환
+const R_LATE={
+ 1:[{t:'일본어 학원',tm:'12–14',s:0},{t:'알바 (버리는 날)',tm:'15–23',s:0}],
+ 2:[{t:'프로젝트 작업 6h',tm:'11–17',s:1},{t:'알바',tm:'18–22',s:0}],
+ 3:[{t:'일본어 학원',tm:'12–14',s:0},{t:'AIF 강의 4h',tm:'16–20',s:1},{t:'자소서/포트폴리오',tm:'21–23:30',s:1}],
+ 4:[{t:'프로젝트 작업 6h',tm:'11–17',s:1},{t:'알바',tm:'18–22',s:0}],
+ 5:[{t:'일본어 학원',tm:'12–14',s:0},{t:'AIF 강의 4h',tm:'16–20',s:1}],
+ 6:[{t:'프로젝트/AIF 집중 7h',tm:'12–19',s:1}],
+ 0:[{t:'공채 지원 + 자소서',tm:'14–18',s:1},{t:'주간 리뷰',tm:'19–19:30',s:1}]
+};
 const key=d=>d.toISOString().slice(0,10);
-const routineFor=d=>(key(d)<'2026-08-01'?R_JULY:R_AUG)[d.getDay()]||[];
+const routineFor=d=>{const k=key(d);return (k<'2026-08-01'?R_JULY:k<'2026-08-16'?R_AUG:R_LATE)[d.getDay()]||[];};
 const customFor=d=>{
  const k=key(d),dow=d.getDay();
  return S.custom.filter(c=>c.rep==='daily'||(c.rep==='weekly'&&c.dow===dow&&k>=c.date)||(c.rep==='once'&&c.date===k));
@@ -555,16 +570,30 @@ const FLAT=[];
 SUBS.forEach((arr,s)=>arr.forEach((name,l)=>FLAT.push({s,l,name,sec:CKA[s][0]})));
 function nextLec(n){return FLAT.filter(x=>!S.ckaLec[lecKey(x.s,x.l)]).slice(0,n);}
 
-// ---- 스케줄러: 내가 체크한 마지막 강의 다음부터, 일관되게 ----
+// ---- 스케줄러: 체크한 마지막 항목 다음부터 자동 안내 (CKA·프로젝트·AIF 공통) ----
 function studyLabel(d,it){
- if(!/CKA/.test(it.t))return it.t;
  const h=(it.t.match(/\d+h/)||[''])[0];      // 블록 시간 유지
+ // 프로젝트 작업 블록 → 다음 미완료 프로젝트 할일
+ if(/프로젝트/.test(it.t)){
+  const nx=PROJ_ITEMS.filter(p=>!S.proj2[p.id]);
+  if(nx.length===0)return `🛠 프로젝트 전 항목 완료!${h?' · '+h:''}`;
+  let s=`🛠 ${nx[0].n}`;
+  if(nx[1])s+=` → ${nx[1].n}`;
+  return s+(h?` · ${h}`:'');
+ }
+ // AIF 강의 블록 → 다음 미완료 AIF 단계
+ if(/AIF/.test(it.t)){
+  const nx=AIF.map((a,i)=>({a,i})).filter(x=>!S.aif[x.i]);
+  if(nx.length===0)return `🤖 AIF 전 단계 완료!${h?' · '+h:''}`;
+  return `🤖 ${nx[0].a[0]}`+(h?` · ${h}`:'');
+ }
+ // CKA 블록 → 다음 미완료 강의 (섹션 번호 포함)
+ if(!/CKA/.test(it.t))return it.t;
  const nx=nextLec(2);
  if(nx.length===0)return `☸️ 전 강의 완료! 모의고사·오답 복습${h?' · '+h:''}`;
- const secShort=nx[0].sec.replace(/^\d+\.\s*/,'').slice(0,7);
- let s=`☸️ ${secShort} ▸ ${nx[0].name}`;
+ let s=`☸️ ${nx[0].sec} ▸ ${nx[0].name}`;   // 예: "3. 스케줄링 ▸ 자원 관리"
  if(nx[1]&&nx[1].s===nx[0].s)s+=` → ${nx[1].name}`;
- else if(nx[1])s+=` → (다음: ${nx[1].sec.replace(/^\d+\.\s*/,'').slice(0,6)})`;
+ else if(nx[1])s+=` → (다음: ${nx[1].sec})`;
  return s+(h?` · ${h}`:'');
 }
 function renderToday(){
@@ -809,6 +838,28 @@ function scheduleToday(){
  });
 }
 
+// ---- 자동 수집 공고 (jobs.json, 예약작업이 매일 커밋) ----
+S.hiddenJobs=S.hiddenJobs||{};
+let autoJobs=[];
+function jobKey(j){return (j.c||'')+'|'+(j.r||'');}
+function fetchJobs(){
+ fetch('jobs.json?t='+Date.now()).then(r=>r.ok?r.json():[]).then(arr=>{
+  if(Array.isArray(arr)){autoJobs=arr;renderAuto();}
+ }).catch(()=>{});
+}
+function renderAuto(){
+ const list=autoJobs.filter(j=>j.c&&!S.hiddenJobs[jobKey(j)]&&!S.apps.some(a=>a.c===j.c&&a.r===j.r));
+ document.getElementById('autoCnt').textContent=list.length?list.length+'건':'';
+ document.getElementById('autoList').innerHTML=list.map(j=>{
+  const idx=autoJobs.indexOf(j);
+  return `<div class="app-row"><div class="app-top"><b>${j.c}</b><span class="dd">${j.due||''}</span></div>
+   <div class="app-bot"><span class="role">${j.r||''}${j.src?' · '+j.src:''}</span>
+   <span><span class="st s1" onclick="regAuto(${idx})">+ 등록</span>${j.url?`<a href="${j.url}" target="_blank" class="del">공고↗</a>`:''}<button class="del" onclick="hideAuto(${idx})">숨김</button></span></div></div>`;
+ }).join('')||'<div class="empty">새 공고 없음</div>';
+}
+function regAuto(i){const j=autoJobs[i];if(!j)return;S.apps.push({c:j.c,r:j.r||'',due:j.due||'',s:0});save();renderApp();renderAuto();}
+function hideAuto(i){const j=autoJobs[i];if(!j)return;S.hiddenJobs[jobKey(j)]=true;save();renderAuto();}
+
 // ---- 탭 ----
 function tab(id,btn){
  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
@@ -820,6 +871,7 @@ rollOver();
 renderDday();renderToday();renderCka();renderOpic();renderAif();renderProj();renderGoal();renderNote();renderApp();renderHero();updateBell();
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').then(r=>{swReg=r;if(S.notif)scheduleToday();}).catch(()=>{if(S.notif)scheduleToday();});
 else if(S.notif)scheduleToday();
+fetchJobs();
 </script>
 </body>
 </html>

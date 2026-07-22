@@ -1,4 +1,4 @@
-const CACHE = 'jobprep-v17';
+const CACHE = 'jobprep-v19';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-180.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
