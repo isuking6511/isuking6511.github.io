@@ -288,7 +288,8 @@ let S=JSON.parse(localStorage.getItem(LS)||'{}');
 S.routine=S.routine||{}; S.cka=S.cka||{}; S.goals=S.goals||{}; S.apps=S.apps||[];
 S.opic=S.opic||{}; S.aif=S.aif||{}; S.notif=S.notif||false;
 S.custom=S.custom||[]; S.backlog=S.backlog||[]; S.notes=S.notes||[];
-const save=()=>localStorage.setItem(LS,JSON.stringify(S));
+// 프라이버시 모드 등에서 setItem이 던져도 화면 갱신이 멈추지 않도록 방어
+const save=()=>{try{localStorage.setItem(LS,JSON.stringify(S));}catch(e){}};
 
 // ---- 루틴 (일본어는 8월부터) ----
 const R_JULY={
@@ -343,7 +344,7 @@ function rollOver(){
    if(done[it.id])return;
    const uid=kk+'/'+it.id;
    if(S.backlog.some(b=>b.uid===uid))return;
-   S.backlog.push({uid,t:it.t,tm:it.tm,from:kk,done:false});
+   S.backlog.push({uid,t:studyLabel(d,it),tm:it.tm,from:kk,done:false});
   });
  }
  if(S.backlog.length>10)S.backlog=S.backlog.slice(-10);
